@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 import string
-
+import random
 offsetIni = 18
 offsetFim = 32 + 4
 offsetResource = 89
@@ -100,7 +100,6 @@ def selectElegibleActivities(s, d, t):
 	length = len(t) 
 	count = 0
 	listpop = []
-
 	#iterando sobre conjunto de atividades a serem processadas
 	while count < length: #for a in t:
 		cp = 0
@@ -121,16 +120,16 @@ def selectElegibleActivities(s, d, t):
 	
 	#Removendo atividades da lista de atividades a serem processadas
 	for pop in listpop:
-		try:
-			i = t.index(pop)
-			t.pop(i)			
-		except ValueError:
-			print "Erro: Ocorreu um erro ao tentar excluir um elemento da lista de atividades a serem processadas"	
-		
-	
+		t.remove(pop)			
 
+def getRandomElegibleActivitie(d):
+	if not d:
+		return -1
+	else:	
+		ra = random.choice(d)
+		d.remove(ra)
+		return ra
 
-	#return d	
 
 #Serial Schedule Generation Scheme
 def SGS():
@@ -150,35 +149,33 @@ def SGS():
 	st[0] = et = 0
 	Sg.append(task[0])
 
-	#ISSO ESTÁ ERRADO! Inserindo sucessores para o vetor de atividades a serem escolhidas
-	#Dg = task[1]
-
+	'''	
 	selectElegibleActivities(Sg, Dg, tp)
-	print Dg
-	print "\n"
-	for i in tp:
-		print i
+    print Dg
+	
+		for i in tp:
+			print i
+	
+	a = getRandomElegibleActivitie(Dg)
+		
+	print a
+	'''	
 
-	'''
 	i = 1
 	while i < g:
 
+		#função de seleção de atividades elegiveis
 		selectElegibleActivities(Sg, Dg, tp)
-		print Dg
+		
+		j = getRandomElegibleActivitie(Dg)
+
+		#Inserindo na lista de atividades já escalonadas	
+		Sg.append(j[0])
+
 		i = i + 1
-		#Fazer uma função de seleção de atividades elegiveis
-	'''	
 
-
+	print Sg	
 	
-
-
-
-
-
-
-
-
 
 
 #Início da execução do código
@@ -186,10 +183,11 @@ def SGS():
 
 
 load('teste.sm')
-
+'''
 for i in tasks:
 	print i
 print "\n"
+'''
 SGS()
 
 #for i in tasks:
