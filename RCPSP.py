@@ -80,6 +80,19 @@ def isPredecessor(t, pt):
 	else:
 		return 1
 
+#Recupera o último predecessor a terminar
+def getEarliestEndingPredecessor(j, et):
+
+	pft = [0,0]
+
+	for p in j[4]:
+		for a in et:
+			if p == a[0]:
+				if a[1] > pft[1]:
+					pft = a
+	
+	print pft[1]				
+	return pft[1]
 #Cria a lista de predecessores
 def generatePredecessors():
 
@@ -93,7 +106,6 @@ def generatePredecessors():
 		tasks[i].append(pred)
 		pred = []		
 		i = i + 1
-
 
 def selectElegibleActivities(s, d, t):
 
@@ -140,26 +152,16 @@ def SGS():
 	Rk = [] #Conjuto de recursos
 	F = 0	#Custo da solução gerada
 	g = len(tasks) #Quantidade de ativdades do projeto
-	st = [g] #Starting time (Tempo de início da atividade)
-	et = [g] #Ending Time (Tempo de términio) 
+	#st = [g] #Starting time (Tempo de início da atividade)
+	et = [] #Ending Time (Tempo de términio)
 	RU = [len(resources)]
 
 	#Processando a primmeira atividade
 	task = tp.pop(0)
-	st[0] = et = 0
+	et.append([task[0],0])
 	Sg.append(task[0])
 
-	'''	
-	selectElegibleActivities(Sg, Dg, tp)
-    print Dg
-	
-		for i in tp:
-			print i
-	
-	a = getRandomElegibleActivitie(Dg)
-		
-	print a
-	'''	
+	print et[0]
 
 	i = 1
 	while i < g:
@@ -167,7 +169,21 @@ def SGS():
 		#função de seleção de atividades elegiveis
 		selectElegibleActivities(Sg, Dg, tp)
 		
+		#Função de cálculo do tempo de fim
+
+
+
+		#Criar a função de consumo de resources	
+
+		#Seleciona uma atividade de forma randomica
 		j = getRandomElegibleActivitie(Dg)
+
+		#Determinando o tempo de fim mais cedo da atividade j, ignorando a disponibilidade de recursos 
+		etc = getEarliestEndingPredecessor(j, et) + j[3]
+
+		et.append([j[0], etc]) 
+
+		print et[i]
 
 		#Inserindo na lista de atividades já escalonadas	
 		Sg.append(j[0])
@@ -178,9 +194,9 @@ def SGS():
 	
 
 
+
+
 #Início da execução do código
-
-
 
 load('teste.sm')
 '''
