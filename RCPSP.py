@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 import string
 import random
+
+
 offsetIni = 18
 offsetFim = 32 + 4
 offsetResource = 89
@@ -58,7 +60,7 @@ def load (nome_arq):
 		h1 = len(l1)
 		h2 = len(l2)
 			   #[NR da Tarefa, Sucessores, Recursos, Tempo de duracao da tarefa]
-		tasks.append([l1[0], l1[3:h1], l2[2:h2], l2[2]]) 
+		tasks.append({'NR':l1[0], 'Predecessors':[], 'Sucessors':l1[3:h1],'R1': l2[3], 'R2': l2[4], 'R3': l2[5], 'R4':l2[6], 'TimeDuration':l2[2]}) 
 
 		#print task
 
@@ -74,7 +76,7 @@ def load (nome_arq):
 def isPredecessor(t, pt):
 	
 	try:
-		i = pt[1].index(t[0])
+		i = pt['Sucessors'].index(t['NR'])
 	except ValueError:	
 		return -1
 	else:
@@ -83,16 +85,14 @@ def isPredecessor(t, pt):
 #Recupera o último predecessor a terminar
 def getEarliestEndingPredecessor(j, et):
 
-	pft = [0,0]
+	pft = {'NR': 0, 'TimeEnd': 0}
 
-	for p in j[4]:
+	for p in j['Predecessors']:
 		for a in et:
-			if p == a[0]:
-				if a[1] > pft[1]:
-					pft = a
-	
-	print pft[1]				
-	return pft[1]
+			if p == a['NR']:
+				if a['TimeEnd'] > pft['TimeEnd']:
+					pft = a			
+	return pft['TimeEnd']
 #Cria a lista de predecessores
 def generatePredecessors():
 
@@ -102,8 +102,8 @@ def generatePredecessors():
 		
 		for t2 in tasks:
 			if isPredecessor(tasks[i], t2) == 1:
-				pred.append(t2[0])
-		tasks[i].append(pred)
+				pred.append(t2['NR'])
+		tasks[i]['Predecessors'] = pred
 		pred = []		
 		i = i + 1
 
@@ -116,7 +116,7 @@ def selectElegibleActivities(s, d, t):
 	while count < length: #for a in t:
 		cp = 0
 		#iterando sobre conjunto de predecedentes da atividades 
-		for p in t[count][4]:
+		for p in t[count]['Predecessors']:
 			try:
 				i = s.index(p) # Tenta recuperar a posição da atividade predecedente já escalonada
 			except ValueError:
@@ -124,7 +124,7 @@ def selectElegibleActivities(s, d, t):
 			else:
 				cp = cp + 1
 		#Verficando se a atividade tornou-se elegivel. Caso seja, adiciona ao conjunto d		
-		if cp == len(t[count][4]):
+		if cp == len(t[count]['Predecessors']):
 			d.append(t[count]) #Inserindo na lista de elegiveis
 			listpop.append(t[count]) # Quardando referencia do objeto para excluir posteriormento
 
@@ -141,6 +141,19 @@ def getRandomElegibleActivitie(d):
 		ra = random.choice(d)
 		d.remove(ra)
 		return ra
+'''
+#Adicionando recursos em uso ao instante T
+def addResourceUsage(Rkj, Rkt, inst):
+
+	for r in Rkt:
+		if inst == r[0]:
+			for 
+
+
+def calculateRkt(j,Rkt,inst):
+'''
+
+
 
 
 #Serial Schedule Generation Scheme
@@ -149,48 +162,53 @@ def SGS():
 	tp = tasks #Conjunto de tarefas para serem processadas
 	Dg = [] #Conjuto de atividades a serem escolhidas
 	Sg = [] #Conjuto de atividades escolhida
-	Rk = [] #Conjuto de recursos
-	F = 0	#Custo da solução gerada
+	Rkt = [] #Quantidade de disponíveis recursos em tempo t
+	F = []	#Tempo fim das atividades
 	g = len(tasks) #Quantidade de ativdades do projeto
-	#st = [g] #Starting time (Tempo de início da atividade)
 	et = [] #Ending Time (Tempo de términio)
-	RU = [len(resources)]
+	etc = [] #
+	#RU = 
 
 	#Processando a primmeira atividade
 	task = tp.pop(0)
-	et.append([task[0],0])
-	Sg.append(task[0])
-
-	print et[0]
+	et.append({'NR':task['NR'], 'TimeEnd':0})
+	etc.append(0)
+	Sg.append(task['NR'])
+	F.append(0)
 
 	i = 1
 	while i < g:
 
 		#função de seleção de atividades elegiveis
 		selectElegibleActivities(Sg, Dg, tp)
-		
-		#Função de cálculo do tempo de fim
-
-
-
-		#Criar a função de consumo de resources	
-
 		#Seleciona uma atividade de forma randomica
 		j = getRandomElegibleActivitie(Dg)
+		
+		#Criar a função de consumo de resources	
+		
 
 		#Determinando o tempo de fim mais cedo da atividade j, ignorando a disponibilidade de recursos 
-		etc = getEarliestEndingPredecessor(j, et) + j[3]
+		etc.append(getEarliestEndingPredecessor(j, et) + j['TimeDuration'])
 
-		et.append([j[0], etc]) 
+		print etc
 
-		print et[i]
+		#Adcionando a o tempo fim da atividade j. ISSO AINDA NÃO ESTÁ DO MODO CORRETO
+		et.append({'NR':j['NR'], 'TimeEnd': etc[i]}) 
+
+		#Calculando o tempo final do conjunto
+		F.append(et[-1])
 
 		#Inserindo na lista de atividades já escalonadas	
-		Sg.append(j[0])
+		Sg.append(j['NR'])
 
 		i = i + 1
 
-	print Sg	
+
+
+
+	print len(et)
+
+	#print Sg	
 	
 
 
@@ -199,6 +217,7 @@ def SGS():
 #Início da execução do código
 
 load('teste.sm')
+
 '''
 for i in tasks:
 	print i
