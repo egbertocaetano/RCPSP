@@ -8,7 +8,8 @@ offsetFim = 32 + 4
 offsetResource = 89
 numTasks = 32
 tasks = []
-resources = []
+resourceAvailabilities	= {}
+resourceUsage = {'R1': 0, 'R2': 0, 'R3': 0, 'R4': 0}
 
 #Limpa a linha e a coloca em lista
 def clearLine(e):
@@ -68,9 +69,13 @@ def load (nome_arq):
 
 	#Capturando a quantidade de recursos	
 	e3 = lines[offsetResource]
-
-	resources = clearLine(e3)
-
+	l3 = clearLine(e3)
+	
+	resourceAvailabilities['R1'] = l3[0]
+	resourceAvailabilities['R2'] = l3[1]
+	resourceAvailabilities['R3'] = l3[2]
+	resourceAvailabilities['R4'] = l3[3]
+	
 	generatePredecessors()	
 
 def isPredecessor(t, pt):
@@ -141,20 +146,85 @@ def getRandomElegibleActivitie(d):
 		ra = random.choice(d)
 		d.remove(ra)
 		return ra
+
+
+
+#Atualizando quantidade de recursos no tempo inst
+def updateResourceUsageTime(demand, resourceUsageTime, inst):
+
+	for resource, amount in resourceUsageTime[inst].iteritems():
+		if resource in demand:
+			resourceUsageTime[inst][resource] = resourceUsageTime[inst][resource] + demand[resource] 
+
 '''
+	for r, a in ativ.iteritems():
+		if r in resourceUsage:
+			resourceUsage[r] = resourceUsage[r] + a		
+'''
+
+#Verificando quantidade de recursos disponiveis no tempo inst
+def verifyResourceAvailabilities(demand,resourceUsageTime,inst):
+
+	for resource, amount in resourceUsageTime[inst].iteritems():
+		if resource in demand:
+			if resourceUsageTime[inst][resource] + demand[resource] > resourceAvailabilities[resource]:
+				return -1
+	return 1
+	
 #Adicionando recursos em uso ao instante T
-def addResourceUsage(Rkj, Rkt, inst):
+def updateResourceUsage(j,resourceUsageTime,inst): #Pensar em um outro nome para esse método
+	
+	isScheduled = False
+	timeStart = inst
+	reserveResourceInTime = []
+	countTime = 0
+	TimeEnd = 0
+	limit = 0
+	
+	#print 'Time inst: ', inst, 'NR: ', j['NR'], 'TimeDuration: ', j['TimeDuration']
+	
+	#Procurano o instante o qual a atividade pode ser escalonada
+	while isScheduled == False:
 
-	for r in Rkt:
-		if inst == r[0]:
-			for 
+		limit = timeStart + j['TimeDuration']
+		countTime = timeStart
+		'''
+		print 'timeStart', timeStart, 'countTime: ', countTime
+		nome = raw_input("Debug: ")
+		'''
+		#Verificando se é possível alocar todos os recursos necessários para tempo de execução da atividade 
+		for t in range(timeStart, limit):
 
+			#Se não existe em resourceUsageTime, significa que desde instante em diante não mais recursos alocados
+			if t not in resourceUsageTime:
+				#print 't: ', t
+				resourceUsageTime[t] = {'R1' : 0, 'R2' : 0, 'R3' : 0, 'R4' : 0}
+				updateResourceUsageTime(j, resourceUsageTime, t)
+				countTime = countTime + 1
+			#Verifica a disponibilidade dos recursos para esse determindo instante, 
+			#caso tenha disponibilidade insere na lista de alocação de 	
+			elif verifyResourceAvailabilities(j, resourceUsageTime,t) == 1:
+				#print 't in verify: ', t
+				reserveResourceInTime.append(t)
+				countTime = countTime + 1
+			else:
+				break
 
-def calculateRkt(j,Rkt,inst):
-'''
+		#print 'countTime: ', countTime, 'TimeEnd: ', timeStart + j['TimeDuration'] 		
+		#Atualizando ResourceUsageTime		
+		if countTime == limit:
 
+			for t in reserveResourceInTime:
+				updateResourceUsageTime(j, resourceUsageTime, t)					
 
+			isScheduled	= True
 
+			TimeEnd = timeStart + j['TimeDuration']
+		else:
+			countTime = 0
+			timeStart = timeStart + 1	
+
+	return TimeEnd	
 
 #Serial Schedule Generation Scheme
 def SGS():
@@ -167,14 +237,15 @@ def SGS():
 	g = len(tasks) #Quantidade de ativdades do projeto
 	et = [] #Ending Time (Tempo de términio)
 	etc = [] #
-	#RU = 
+	resourceUsageTime = {}
 
 	#Processando a primmeira atividade
 	task = tp.pop(0)
 	et.append({'NR':task['NR'], 'TimeEnd':0})
 	etc.append(0)
 	Sg.append(task['NR'])
-	F.append(0)
+	F.append(1)
+	resourceUsageTime[0] ={'R1' : 0, 'R2' : 0, 'R3' : 0, 'R4' : 0} #Inserindo uso dos recursos no instante 0
 
 	i = 1
 	while i < g:
@@ -186,14 +257,16 @@ def SGS():
 		
 		#Criar a função de consumo de resources	
 		
-
 		#Determinando o tempo de fim mais cedo da atividade j, ignorando a disponibilidade de recursos 
-		etc.append(getEarliestEndingPredecessor(j, et) + j['TimeDuration'])
+		#etc.append({'NR': j['NR'], 'TimeMaxPredecessor': getEarliestEndingPredecessor(j, et)})
 
-		print etc
+		ES = getEarliestEndingPredecessor(j, et)
 
 		#Adcionando a o tempo fim da atividade j. ISSO AINDA NÃO ESTÁ DO MODO CORRETO
-		et.append({'NR':j['NR'], 'TimeEnd': etc[i]}) 
+		minE = updateResourceUsage(j,resourceUsageTime,ES)
+
+		
+		et.append({'NR':j['NR'], 'TimeEnd': minE}) 
 
 		#Calculando o tempo final do conjunto
 		F.append(et[-1])
@@ -203,12 +276,10 @@ def SGS():
 
 		i = i + 1
 
+	for a in F:
+		print a
 
-
-
-	print len(et)
-
-	#print Sg	
+	print Sg	
 	
 
 
