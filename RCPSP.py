@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 import string
 import random
+import copy
+import sys
 
 
 offsetIni = 18
@@ -44,6 +46,8 @@ def clearLine(e):
 #Carregando arquivo alimentar o algortimo
 def load (nome_arq):
 	
+	print 'Carregando instância...'
+
 	arq = open(nome_arq, 'r')
 	text = arq.read(); #lendo todo o arquivo para memoria
 	lines = string.split(text, '\n') #Separando as linhas por \n
@@ -77,6 +81,8 @@ def load (nome_arq):
 	resourceAvailabilities['R4'] = l3[3]
 	
 	generatePredecessors()	
+
+	print 'Fim da carga.'
 
 def isPredecessor(t, pt):
 	
@@ -147,20 +153,12 @@ def getRandomElegibleActivitie(d):
 		d.remove(ra)
 		return ra
 
-
-
 #Atualizando quantidade de recursos no tempo inst
 def updateResourceUsageTime(demand, resourceUsageTime, inst):
 
 	for resource, amount in resourceUsageTime[inst].iteritems():
 		if resource in demand:
 			resourceUsageTime[inst][resource] = resourceUsageTime[inst][resource] + demand[resource] 
-
-'''
-	for r, a in ativ.iteritems():
-		if r in resourceUsage:
-			resourceUsage[r] = resourceUsage[r] + a		
-'''
 
 #Verificando quantidade de recursos disponiveis no tempo inst
 def verifyResourceAvailabilities(demand,resourceUsageTime,inst):
@@ -172,7 +170,7 @@ def verifyResourceAvailabilities(demand,resourceUsageTime,inst):
 	return 1
 	
 #Adicionando recursos em uso ao instante T
-def updateResourceUsage(j,resourceUsageTime,inst): #Pensar em um outro nome para esse método
+def allocatingActivityOnTimeLine(j,resourceUsageTime,inst): #Pensar em um outro nome para esse método
 	
 	isScheduled = False
 	timeStart = inst
@@ -229,20 +227,23 @@ def updateResourceUsage(j,resourceUsageTime,inst): #Pensar em um outro nome para
 #Serial Schedule Generation Scheme
 def SGS():
 
-	tp = tasks #Conjunto de tarefas para serem processadas
+	tp = [] #Conjunto de tarefas para serem processadas
 	Dg = [] #Conjuto de atividades a serem escolhidas
 	Sg = [] #Conjuto de atividades escolhida
 	Rkt = [] #Quantidade de disponíveis recursos em tempo t
 	F = []	#Tempo fim das atividades
 	g = len(tasks) #Quantidade de ativdades do projeto
 	et = [] #Ending Time (Tempo de términio)
-	etc = [] #
-	resourceUsageTime = {}
+	#etc = []
+	resourceUsageTime = {} #Timeline de uso dos recursos
+	individual = {} #Individuo gerado na execuç
 
+	tp = copy.deepcopy(tasks)
+	
 	#Processando a primmeira atividade
 	task = tp.pop(0)
 	et.append({'NR':task['NR'], 'TimeEnd':0})
-	etc.append(0)
+	#etc.append(0)
 	Sg.append(task['NR'])
 	F.append(1)
 	resourceUsageTime[0] ={'R1' : 0, 'R2' : 0, 'R3' : 0, 'R4' : 0} #Inserindo uso dos recursos no instante 0
@@ -262,11 +263,11 @@ def SGS():
 
 		ES = getEarliestEndingPredecessor(j, et)
 
-		#Adcionando a o tempo fim da atividade j. ISSO AINDA NÃO ESTÁ DO MODO CORRETO
-		minE = updateResourceUsage(j,resourceUsageTime,ES)
+		#Adcionando o tempo fim da execução atividade j e atualização de recursos. 
+		minJ = allocatingActivityOnTimeLine(j,resourceUsageTime,ES)
 
 		
-		et.append({'NR':j['NR'], 'TimeEnd': minE}) 
+		et.append({'NR':j['NR'], 'TimeEnd': minJ}) 
 
 		#Calculando o tempo final do conjunto
 		F.append(et[-1])
@@ -276,25 +277,89 @@ def SGS():
 
 		i = i + 1
 
-	for a in F:
-		print a
+	individual['Chromosome'] = Sg
+	individual['Cost'] = F[-1]['TimeEnd']
 
-	print Sg	
-	
+	return individual
+
+#Incío dos códigos dos operadores genéticos	
+def generatePopulation(n):
+
+	popu = []
+	i = 0
+
+	while i < n:
+		popu.append(SGS())
+		i = i + 1
+	return popu
+
+#Ordena a população pelo custo menor tempo de execução
+def generatepopulationElitist(pop):
+
+	popElitist = sorted(pop, key=lambda k: k['Cost'])
+	return popElitist
+
+def selectsFit(pop, txSlection):
+
+	poplength = len(pop)
+	popElitist = generatepopulationElitist(pop)
+	selectQuantity = ((poplength*txSlection)/100)
+
+	elit = popElitist[0:selectQuantity]
+
+	return elit
+
+def crossOverOnePoint(ind1, ind2, nG):
+
+	pointer = 0
+	son1 = []
+	son2 = []
+	lenInd1 = len(ind1['Chromosome']) 
+	lenInd2 = len(ind2['Chromosome'])
+	listrandom = []
+
+	if lenInd1 == lenInd2:
+
+		listrandom = range(0,lenInd1)
+
+		pointer =  random.choice(listrandom)
+
+		print pointer
+
+		#gerando filhos
+		son1 = ind1['Chromosome'][0:pointer] + ind2['Chromosome'][pointer:lenInd2]
+		son2  = ind2['Chromosome'][0:pointer] + ind1['Chromosome'][pointer:lenInd1]
+	else:
+		print 'Pais com tamanho de gene diferente!'
+		exit(1)
 
 
+	nG.append(son1)
+	nG.append(son2)	
 
 
 #Início da execução do código
-
 load('teste.sm')
 
-'''
-for i in tasks:
-	print i
-print "\n"
-'''
-SGS()
+#Incio do algoritmo genético
+population = generatePopulation(10)
+elit = selectsFit(population, 45)
+newGeneration = []
+
+print 'Melhores pais:'
+for ind in elit:
+	print ind
+
+crossOverOnePoint(elit[0], elit[1], newGeneration)
+
+print 'Melhores filhos:'
+for ind in newGeneration:
+	print ind
+
+
+
+
+#print sys.argv
 
 #for i in tasks:
 #	print i
