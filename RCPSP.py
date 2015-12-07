@@ -328,22 +328,22 @@ def exsistsChromossome(chromossome, population):
 	return -1 		
 
 #Ordena a população pelo custo menor tempo de execução
-def generatepopulationElitist(pop):
+def classifyCandidates(pop):
 
 	popElitist = sorted(pop, key=lambda k: k['Cost'])
 	return popElitist
 
-def selectsFit(pop, txSlection):
+def selectsBestParents(pop, txSlection):
 
 	poplength = len(pop)
-	popElitist = generatepopulationElitist(pop)
+	popCondidates = classifyCandidates(pop)
 	selectQuantity = ((poplength*txSlection)/100)
 
-	elit = popElitist[0:selectQuantity]
+	elit = popCondidates[0:selectQuantity]
 
 	return elit
 
-def crossOver(ind1, ind2, nG, qp):
+def crossover(ind1, ind2, candidates, qp):
 
 
 	pointer = 0
@@ -391,14 +391,28 @@ def crossOver(ind1, ind2, nG, qp):
 	son1['Chromossome'] = chromossome1	
 	son2['Chromossome'] = chromossome2
 	
-	nG.append(son1)
-	nG.append(son2)	
+	candidates.append(son1)
+	candidates.append(son2)	
 
-def mutation(chromossome, nG, probability):
+def crossoverPopulation(pop, candidates, qp):
 
-	mutant =  copy.deepcopy(chromossome)
+	i = 1
+	j = 0
+	length = len(pop)
+
+	while i < length - 1:
+		j = 1
+		while j < length - 2:
+			crossover(pop[i], pop[j], candidates, qp)
+			j = j + 1
+		i = i + 1	
+
+def mutation(individual, candidates, probability):
+
+	mutant =  copy.deepcopy(individual)
 	length = len(mutant['Chromossome'])
 	aux = 0
+	candidate = {}
 
 	i = 1 #Garante que não tentará fazer mutação na atividade 1, pois essa não importa porque ela é dummy
 	while i < length - 2: ##Garante que não tentará fazer mutação na atividade 32, pois essa não importa porque ela é dummy
@@ -415,8 +429,15 @@ def mutation(chromossome, nG, probability):
 
 			#print mutant['Chromossome']
 		i = i + 1
+	
+	candidate['Chromossome'] = mutant['Chromossome'] 
 
-	nG.append(mutant)			
+	candidates.append(candidate)			
+
+def mutaitonPopulation(pop, candidates, probability):
+
+	for ind	in pop:
+		mutation(ind, candidates, probability)
 
 def hasRepeatedGene(chromossome):
 
@@ -433,7 +454,7 @@ def hasRepeatedGene(chromossome):
 def evaluationCandidate(candidate):
 
 	if hasRepeatedGene(candidate) == 1:
-		print 'Genes repitidos!'
+		#print 'Genes repitidos!'
 		return None
 
 	#tp = [] #Conjunto de tarefas para serem processadas
@@ -469,7 +490,7 @@ def evaluationCandidate(candidate):
 		j = getActivity(candidate['Chromossome'][i])
 		
 		if verifyAlreadyPredecessorsScheduled(j['Predecessors'], Sg) == -1:
-			print 'Não foram todos escalonados'
+			#print 'Não foram todos escalonados'
 			return None
 
 		#Criar a função de consumo de resources	
@@ -498,39 +519,137 @@ def evaluationCandidate(candidate):
 
 	return individual
 
+def selectsCandidates(candidatesFit, numberpopulation):
+	
+	classifiedList = classifyCandidates(candidatesFit)
 
-#def evaluationNewGeneration(newGeneration):
+	selectedCandidates = classifiedList[0:numberpopulation]
+
+	return selectedCandidates
+
+
+#def evaluationcandidates(newGeneration):
 
 
 
 
 #############################################################################################################################################
 #Início da execução do código
-load('teste.sm')
+
 #Incio do algoritmo genético
 numberpopulation = int(sys.argv[1])
 numberpoints = int(sys.argv[2])
 txSlection = int(sys.argv[3])
+numberInteration = int(sys.argv[4])
+load(sys.argv[5])
 txMutation = 0.1 #taxa de mutação de 1 porcento
 
+
+
+Generations = []
+numberGeneration = 0
 population = generatePopulation(numberpopulation)
-elit = selectsFit(population, txSlection)
+Generation = [{'NrGeneration' : numberGeneration, 'Population' : population}] 
+bestParents = selectsBestParents(population, txSlection)
 newGeneration = []
+candidates = []
+candidatesFit = []
+counterIteration = 0
+bestFitness = bestParents[0]['Cost'] 
+bestFitnessNow = 0
+'''
+
+numberGeneration = numberGeneration + 1
+bestParents = selectsBestParents(population, txSlection) # Recuperando os melhores individuos da população anterior
+population = generatePopulation(numberpopulation - len(bestParents)) # Gerando uma nova população
+population = population + bestParents # Unindo os melhores da população anterior com os da nova população
+
+crossoverPopulation(population, candidates, numberpoints)
+
+mutaitonPopulation(population, candidates, txMutation)
+
+#Slecionando os candidatos em aptos
+for ind in candidates:
+	candidate = evaluationCandidate(ind)
+	if candidate == None:
+		pass
+	else:
+		if exsistsChromossome(candidate, candidatesFit) == 1:
+			pass
+		else:
+			candidatesFit.append(candidate)
+
+newGeneration = selectsCandidates(candidatesFit, numberpopulation)		
 
 
+
+i = 0
+for ind in newGeneration:
+	print ind
+	i = i + 1
+
+print i	
+
+bestFit = newGeneration[0]['Cost']
+
+print bestFit
+'''
+
+while counterIteration <= numberInteration:
+
+	numberGeneration = numberGeneration + 1
+	bestParents = selectsBestParents(population, txSlection) # Recuperando os melhores individuos da população anterior
+	population = generatePopulation(numberpopulation - len(bestParents)) # Gerando uma nova população
+	population = population + bestParents # Unindo os melhores da população anterior com os da nova população
+
+	crossoverPopulation(population, candidates, numberpoints)
+
+	mutaitonPopulation(population, candidates, txMutation)
+
+	#Slecionando os candidatos em aptos
+	for ind in candidates:
+		candidate = evaluationCandidate(ind)
+		if candidate == None:
+			pass
+		else:
+			candidatesFit.append(candidate)
+
+	newGeneration = selectsCandidates(candidatesFit, numberpopulation)
+
+	bestFitnessNow = newGeneration[0]['Cost']
+
+	#print counterIteration
+	if bestFitnessNow >= bestFitness:
+		counterIteration = counterIteration + 1
+	else:
+		print 'bestFitness:' , bestFitness, 'bestFitnessNow', bestFitnessNow
+		bestFitness = bestFitnessNow
+		counterIteration = 0
+
+
+print bestFitness
+
+
+
+
+
+
+
+
+'''
 print 'Melhores pais:'
 for ind in elit:
 	print ind
 
-#crossOverOnePoint(elit[0], elit[1], newGeneration)
-crossOver(elit[0], elit[10], newGeneration, numberpoints)
+#crossOverOnePoint(elit[0], elit[1], candidates)
+crossOver(elit[0], elit[10], candidates, numberpoints)
 
 for ind in elit:
-	mutation(ind, newGeneration, txMutation)
+	mutation(ind, candidates, txMutation)
 
 
 print 'Melhores filhos:'
-for ind in newGeneration:
+for ind in candidates:
 	ni = evaluationCandidate(ind)
 	if ni == None:
 		print ni
@@ -538,7 +657,7 @@ for ind in newGeneration:
 	else:
 		print ni
 
-
+'''
 
 #print sys.argv
 
