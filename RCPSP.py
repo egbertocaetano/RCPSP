@@ -3,6 +3,7 @@ import string
 import random
 import copy
 import sys
+from numpy.random import choice, random_integers
 
 
 offsetIni = 18
@@ -84,6 +85,12 @@ def load (nome_arq):
 
 	print 'Fim da carga.'
 
+def getActivity(num):
+	
+	for ativ in tasks:
+		if ativ['NR'] == num:
+			return ativ	
+
 def isPredecessor(t, pt):
 	
 	try:
@@ -93,6 +100,18 @@ def isPredecessor(t, pt):
 	else:
 		return 1
 
+def verifyAlreadyPredecessorsScheduled(predecessors, s):
+
+	for p in predecessors:
+		try:
+			i = s.index(p) # Tenta recuperar a posição da atividade predecedente já escalonada
+		except ValueError:
+			return -1
+		else:
+			pass
+
+	return 1
+			
 #Recupera o último predecessor a terminar
 def getEarliestEndingPredecessor(j, et):
 
@@ -126,7 +145,7 @@ def selectElegibleActivities(s, d, t):
 	#iterando sobre conjunto de atividades a serem processadas
 	while count < length: #for a in t:
 		cp = 0
-		#iterando sobre conjunto de predecedentes da atividades 
+		#iterando sobre conjunto de predecedentes das atividades 
 		for p in t[count]['Predecessors']:
 			try:
 				i = s.index(p) # Tenta recuperar a posição da atividade predecedente já escalonada
@@ -193,7 +212,7 @@ def allocatingActivityOnTimeLine(j,resourceUsageTime,inst): #Pensar em um outro 
 		#Verificando se é possível alocar todos os recursos necessários para tempo de execução da atividade 
 		for t in range(timeStart, limit):
 
-			#Se não existe em resourceUsageTime, significa que desde instante em diante não mais recursos alocados
+			#Se não existe em resourceUsageTime, significa que desde instante em diante não há mais recursos alocados
 			if t not in resourceUsageTime:
 				#print 't: ', t
 				resourceUsageTime[t] = {'R1' : 0, 'R2' : 0, 'R3' : 0, 'R4' : 0}
@@ -277,7 +296,7 @@ def SGS():
 
 		i = i + 1
 
-	individual['Chromosome'] = Sg
+	individual['Chromossome'] = Sg
 	individual['Cost'] = F[-1]['TimeEnd']
 
 	return individual
@@ -292,7 +311,7 @@ def generatePopulation(n):
 	while i < n:
 		individual = SGS()
 		if exsistsChromossome(individual, popu) == 1:#Verifica se o cromossomo já existe 
-			print 'Chromosome igual'
+			print 'Chromossome igual'
 			individual = {}
 		else:	
 			popu.append(SGS())
@@ -300,10 +319,10 @@ def generatePopulation(n):
 	return popu
 
 #Função para garantir que não existirá cromossomos iguais na população 
-def exsistsChromossome(chromosome, population):
+def exsistsChromossome(chromossome, population):
 	
 	for ind in population:
-		if chromosome['Chromosome'] == ind['Chromosome']: 
+		if chromossome['Chromossome'] == ind['Chromossome']: 
 			return 1
 
 	return -1 		
@@ -324,7 +343,6 @@ def selectsFit(pop, txSlection):
 
 	return elit
 
-
 def crossOver(ind1, ind2, nG, qp):
 
 
@@ -334,11 +352,11 @@ def crossOver(ind1, ind2, nG, qp):
 	chromossome2 = []
 	son1 = {}
 	son2 = {}
-	lenInd1 = len(ind1['Chromosome']) 
-	lenInd2 = len(ind2['Chromosome'])
+	lenInd1 = len(ind1['Chromossome']) 
+	lenInd2 = len(ind2['Chromossome'])
 	listrandom = []
-	offset = lenInd1/qp
-	residual = lenInd1%qp
+	offset = lenInd1/(qp+1)
+	residual = lenInd1%(qp+1)
 	set = 0
 
 	#listrandom = range(0,lenInd1)
@@ -346,46 +364,79 @@ def crossOver(ind1, ind2, nG, qp):
 
 	if lenInd1 == lenInd2:
 		#gerando filhos
-		for i in range(1,qp+1):
+		for i in range(1,qp+2):
 			#print 'i: ', i, 'offset: ', offset, 'pointer: ' , pointer 
 			threshold = (i*offset)
 
 			if (i%2) == 1:
-				chromossome1 += ind1['Chromosome'][pointer:threshold]
-				chromossome2 += ind2['Chromosome'][pointer:threshold]
+				chromossome1 += ind1['Chromossome'][pointer:threshold]
+				chromossome2 += ind2['Chromossome'][pointer:threshold]
 				pointer = threshold
 			else:
-				chromossome1 += ind2['Chromosome'][pointer:threshold]
-				chromossome2 += ind1['Chromosome'][pointer:threshold]
+				chromossome1 += ind2['Chromossome'][pointer:threshold]
+				chromossome2 += ind1['Chromossome'][pointer:threshold]
 				pointer = threshold
 		
 		if residual > 0:
 			if ((threshold + residual)%2) == 1:
-				chromossome1 += ind1['Chromosome'][pointer:threshold+residual]
-				chromossome2 += ind2['Chromosome'][pointer:threshold+residual]
+				chromossome1 += ind1['Chromossome'][pointer:threshold+residual]
+				chromossome2 += ind2['Chromossome'][pointer:threshold+residual]
 			else:
-				chromossome1 += ind2['Chromosome'][pointer:threshold+residual]
-				chromossome2 += ind1['Chromosome'][pointer:threshold+residual]
+				chromossome1 += ind2['Chromossome'][pointer:threshold+residual]
+				chromossome2 += ind1['Chromossome'][pointer:threshold+residual]
 	else:
 		print 'Pais com tamanho de gene diferente!'
 		exit(1)
 
-	son1['Chromosome'] = chromossome1	
-	son2['Chromosome'] = chromossome2
-
+	son1['Chromossome'] = chromossome1	
+	son2['Chromossome'] = chromossome2
+	
 	nG.append(son1)
 	nG.append(son2)	
 
+def mutation(chromossome, nG, probability):
 
-#def mutation(chromosome, probability):
-'''
-def isRepeatedGene(chromosome):
+	mutant =  copy.deepcopy(chromossome)
+	length = len(mutant['Chromossome'])
+	aux = 0
 
-	for gene in c
+	i = 1 #Garante que não tentará fazer mutação na atividade 1, pois essa não importa porque ela é dummy
+	while i < length - 2: ##Garante que não tentará fazer mutação na atividade 32, pois essa não importa porque ela é dummy
+		if choice(2, p = [1-probability, probability]):
+			#Altera essa parte para garantir que ele nao escolha o mesmo
+			#chromossome.vect[x] = random_integers(1, Solution.solution_size)
+			'''print 'Mutação:'
+			print 'Gene1: ', mutant['Chromossome'][i] 
+			print 'Gene2: ', mutant['Chromossome'][i+1] 
+			print mutant['Chromossome']'''
+			aux = mutant['Chromossome'][i+1]
+			mutant['Chromossome'][i+1] = mutant['Chromossome'][i]			
+			mutant['Chromossome'][i] = aux
 
-def evaluationIndividual(individual):
+			#print mutant['Chromossome']
+		i = i + 1
 
-	tp = [] #Conjunto de tarefas para serem processadas
+	nG.append(mutant)			
+
+def hasRepeatedGene(chromossome):
+
+	#print chromossome
+
+	for gene in chromossome['Chromossome']:
+		if chromossome['Chromossome'].count(gene) > 1:
+			#print 'Nr: ' , gene, 'Chromossome: ', chromossome['Chromossome'].count(gene)
+			return 1
+
+	else:
+		return -1		
+
+def evaluationCandidate(candidate):
+
+	if hasRepeatedGene(candidate) == 1:
+		print 'Genes repitidos!'
+		return None
+
+	#tp = [] #Conjunto de tarefas para serem processadas
 	#Dg = [] #Conjuto de atividades a serem escolhidas
 	Sg = [] #Conjuto de atividades escolhida
 	Rkt = [] #Quantidade de disponíveis recursos em tempo t
@@ -394,13 +445,14 @@ def evaluationIndividual(individual):
 	et = [] #Ending Time (Tempo de términio)
 	#etc = []
 	resourceUsageTime = {} #Timeline de uso dos recursos
-	individual = {} #Individuo gerado na execuç
+	individual = {} #Individuo gerado na execução
 
-	tp = copy.deepcopy(tasks)
+	#tp = copy.deepcopy(tasks)
 	
 	
 	#Processando a primmeira atividade
-	task = tp.pop(0)
+	#task = tp.pop(0)
+	task = getActivity(candidate['Chromossome'][0])
 	et.append({'NR':task['NR'], 'TimeEnd':0})
 	#etc.append(0)
 	Sg.append(task['NR'])
@@ -412,10 +464,14 @@ def evaluationIndividual(individual):
 	while i < g:
 
 		#função de seleção de atividades elegiveis
-		selectElegibleActivities(Sg, Dg, tp)
+		#selectElegibleActivities(Sg, Dg, tp)
 		#Seleciona uma atividade de forma randomica
-		j = getRandomElegibleActivitie(Dg)
+		j = getActivity(candidate['Chromossome'][i])
 		
+		if verifyAlreadyPredecessorsScheduled(j['Predecessors'], Sg) == -1:
+			print 'Não foram todos escalonados'
+			return None
+
 		#Criar a função de consumo de resources	
 		
 		#Determinando o tempo de fim mais cedo da atividade j, ignorando a disponibilidade de recursos 
@@ -437,38 +493,50 @@ def evaluationIndividual(individual):
 
 		i = i + 1
 
+	individual['Chromossome'] = Sg
+	individual['Cost'] = F[-1]['TimeEnd']
 
-def evaluationNewGeneration(newGeneration):
+	return individual
 
-'''
+
+#def evaluationNewGeneration(newGeneration):
+
 
 
 
 #############################################################################################################################################
 #Início da execução do código
 load('teste.sm')
-
 #Incio do algoritmo genético
 numberpopulation = int(sys.argv[1])
 numberpoints = int(sys.argv[2])
 txSlection = int(sys.argv[3])
+txMutation = 0.1 #taxa de mutação de 1 porcento
 
 population = generatePopulation(numberpopulation)
 elit = selectsFit(population, txSlection)
 newGeneration = []
 
-'''
+
 print 'Melhores pais:'
 for ind in elit:
 	print ind
 
 #crossOverOnePoint(elit[0], elit[1], newGeneration)
-crossOver(elit[0], elit[1], newGeneration, numberpoints)
+crossOver(elit[0], elit[10], newGeneration, numberpoints)
+
+for ind in elit:
+	mutation(ind, newGeneration, txMutation)
+
 
 print 'Melhores filhos:'
 for ind in newGeneration:
-	print ind
-'''
+	ni = evaluationCandidate(ind)
+	if ni == None:
+		print ni
+		print 'Candidato descartado!'
+	else:
+		print ni
 
 
 
