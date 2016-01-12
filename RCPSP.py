@@ -3,6 +3,7 @@ import string
 import random
 import copy
 import sys
+import time
 from numpy.random import choice, random_integers
 
 
@@ -47,8 +48,7 @@ def clearLine(e):
 #Carregando arquivo alimentar o algortimo
 def load (nome_arq):
 	
-	print 'Carregando instância...'
-
+	
 	arq = open(nome_arq, 'r')
 	text = arq.read(); #lendo todo o arquivo para memoria
 	lines = string.split(text, '\n') #Separando as linhas por \n
@@ -83,7 +83,6 @@ def load (nome_arq):
 	
 	generatePredecessors()	
 
-	print 'Fim da carga.'
 
 def getActivity(num):
 	
@@ -111,6 +110,16 @@ def verifyAlreadyPredecessorsScheduled(predecessors, s):
 			pass
 
 	return 1
+
+def orderActivities(Dg, asc):
+
+	popElitist = sorted(Dg, key=lambda k: k['TimeDuration'])
+
+	if asc:
+		return popElitist
+	else:
+		popElitist.reverse()
+		return popElitist
 			
 #Recupera o último predecessor a terminar
 def getEarliestEndingPredecessor(j, et):
@@ -159,18 +168,38 @@ def selectElegibleActivities(s, d, t):
 			listpop.append(t[count]) # Quardando referencia do objeto para excluir posteriormento
 
 		count = count + 1
-	
 	#Removendo atividades da lista de atividades a serem processadas
 	for pop in listpop:
 		t.remove(pop)			
 
 def getRandomElegibleActivitie(d):
+
 	if not d:
 		return -1
 	else:	
 		ra = random.choice(d)
 		d.remove(ra)
 		return ra
+
+def getShortesElegibleActivitie(d):
+
+	orderedElegiblesActivities = orderActivities(d,1)
+
+	activ =  orderedElegiblesActivities.pop()
+
+	for a in d:
+		if activ['NR'] == a['NR']:
+			try:
+				i = d.index(a) # Tenta recuperar a posição da atividade predecedente já escalonada
+			except ValueError:
+				break
+			else:
+				pass
+
+			act = d.pop(i)
+			return act
+
+	return -1		
 
 #Atualizando quantidade de recursos no tempo inst
 def updateResourceUsageTime(demand, resourceUsageTime, inst):
@@ -275,6 +304,7 @@ def SGS():
 		#Seleciona uma atividade de forma randomica
 		j = getRandomElegibleActivitie(Dg)
 		
+
 		#Criar a função de consumo de resources	
 		
 		#Determinando o tempo de fim mais cedo da atividade j, ignorando a disponibilidade de recursos 
@@ -311,7 +341,7 @@ def generatePopulation(n):
 	while i < n:
 		individual = SGS()
 		if exsistsChromossome(individual, popu) == 1:#Verifica se o cromossomo já existe 
-			print 'Chromossome igual'
+			#print 'Chromossome igual'
 			individual = {}
 		else:	
 			popu.append(SGS())
@@ -393,6 +423,21 @@ def crossover(ind1, ind2, candidates, qp):
 	
 	candidates.append(son1)
 	candidates.append(son2)	
+
+def crossoverWithBestParents(bestP, pop, candidates, qp):
+
+	i = 1
+	j = 0
+	lengthBP = len(bestP)
+	lengthPOP = len(pop)
+
+	while i < lengthBP - 1:
+		j = 1
+		while j < lengthPOP - 2:
+			crossover(bestP[i], pop[j], candidates, qp)
+			j = j + 1
+		i = i + 1	
+
 
 def crossoverPopulation(pop, candidates, qp):
 
@@ -531,8 +576,6 @@ def selectsCandidates(candidatesFit, numberpopulation):
 #def evaluationcandidates(newGeneration):
 
 
-
-
 #############################################################################################################################################
 #Início da execução do código
 
@@ -541,10 +584,9 @@ numberpopulation = int(sys.argv[1])
 numberpoints = int(sys.argv[2])
 txSlection = int(sys.argv[3])
 numberInteration = int(sys.argv[4])
-load(sys.argv[5])
+instancia = sys.argv[5]
+load(instancia)
 txMutation = 0.1 #taxa de mutação de 1 porcento
-
-
 
 Generations = []
 numberGeneration = 0
@@ -557,44 +599,9 @@ candidatesFit = []
 counterIteration = 0
 bestFitness = bestParents[0]['Cost'] 
 bestFitnessNow = 0
-'''
 
-numberGeneration = numberGeneration + 1
-bestParents = selectsBestParents(population, txSlection) # Recuperando os melhores individuos da população anterior
-population = generatePopulation(numberpopulation - len(bestParents)) # Gerando uma nova população
-population = population + bestParents # Unindo os melhores da população anterior com os da nova população
-
-crossoverPopulation(population, candidates, numberpoints)
-
-mutaitonPopulation(population, candidates, txMutation)
-
-#Slecionando os candidatos em aptos
-for ind in candidates:
-	candidate = evaluationCandidate(ind)
-	if candidate == None:
-		pass
-	else:
-		if exsistsChromossome(candidate, candidatesFit) == 1:
-			pass
-		else:
-			candidatesFit.append(candidate)
-
-newGeneration = selectsCandidates(candidatesFit, numberpopulation)		
-
-
-
-i = 0
-for ind in newGeneration:
-	print ind
-	i = i + 1
-
-print i	
-
-bestFit = newGeneration[0]['Cost']
-
-print bestFit
-'''
-
+#Inicio do algoritmo genético
+timeBegin = time.clock()
 while counterIteration <= numberInteration:
 
 	numberGeneration = numberGeneration + 1
@@ -602,8 +609,9 @@ while counterIteration <= numberInteration:
 	population = generatePopulation(numberpopulation - len(bestParents)) # Gerando uma nova população
 	population = population + bestParents # Unindo os melhores da população anterior com os da nova população
 
-	crossoverPopulation(population, candidates, numberpoints)
+	#crossoverPopulation(population, candidates, numberpoints)
 
+	crossoverWithBestParents(bestParents, population, candidates, numberpoints)
 	mutaitonPopulation(population, candidates, txMutation)
 
 	#Slecionando os candidatos em aptos
@@ -622,44 +630,12 @@ while counterIteration <= numberInteration:
 	if bestFitnessNow >= bestFitness:
 		counterIteration = counterIteration + 1
 	else:
-		print 'bestFitness:' , bestFitness, 'bestFitnessNow', bestFitnessNow
+		print 'Geração: ', numberGeneration, ' Antigo: ' , bestFitness, ' Novo: ', bestFitnessNow
 		bestFitness = bestFitnessNow
 		counterIteration = 0
 
+timeEnd = time.clock()
 
-print bestFitness
+deltaTime = timeEnd - timeBegin
 
-
-
-
-
-
-
-
-'''
-print 'Melhores pais:'
-for ind in elit:
-	print ind
-
-#crossOverOnePoint(elit[0], elit[1], candidates)
-crossOver(elit[0], elit[10], candidates, numberpoints)
-
-for ind in elit:
-	mutation(ind, candidates, txMutation)
-
-
-print 'Melhores filhos:'
-for ind in candidates:
-	ni = evaluationCandidate(ind)
-	if ni == None:
-		print ni
-		print 'Candidato descartado!'
-	else:
-		print ni
-
-'''
-
-#print sys.argv
-
-#for i in tasks:
-#	print i
+print instancia, ':' , bestFitness, ':' , deltaTime
